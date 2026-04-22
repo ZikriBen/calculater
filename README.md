@@ -1,39 +1,43 @@
-**Welcome to your Base44 project** 
+# המורה הפרטית לחשבון 🧮
 
-**About**
+A Hebrew-language elementary math tutor. React + Vite frontend with an LLM proxy
+that supports AWS Bedrock, OpenAI, and Together AI as providers.
 
-View and Edit  your app on [Base44.com](http://Base44.com) 
+## Features
 
-This project contains everything you need to run your app locally.
+- Hebrew chat tutor with gender-aware language
+- Daily practice drills tailored per grade (א'–ו')
+- Interactive vertical multiplication (כפל מאונך) drill
+- Exam image upload + analysis (vision)
+- Per-student settings: name, gender, grade, theme
 
-**Edit the code in your local development environment**
+## Run locally
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
-
-**Prerequisites:** 
-
-1. Clone the repository using the project's Git URL 
-2. Navigate to the project directory
-3. Install dependencies: `npm install`
-4. Create an `.env.local` file and set the right environment variables
-
-```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
-
-e.g.
-VITE_BASE44_APP_ID=cbef744a8545c389ef439ea6
-VITE_BASE44_APP_BASE_URL=https://my-to-do-list-81bfaad7.base44.app
+```bash
+npm install
+npm run dev   # http://localhost:5173
 ```
 
-Run the app: `npm run dev`
+## Configuration
 
-**Publish your changes**
+Create `.env.local` in the project root:
 
-Open [Base44.com](http://Base44.com) and click on Publish.
+```
+# Provider selection
+LLM_PROVIDER=bedrock          # bedrock | openai | together
+LLM_VISION_PROVIDER=bedrock   # optional, falls back to LLM_PROVIDER
 
-**Docs & Support**
+# Bedrock (default)
+AWS_REGION=eu-west-1
+BEDROCK_MODEL_ID=eu.anthropic.claude-sonnet-4-5-20250929-v1:0
 
-Documentation: [https://docs.base44.com/Integrations/Using-GitHub](https://docs.base44.com/Integrations/Using-GitHub)
+# OpenAI
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+# Together
+TOGETHER_API_KEY=tgp_v1_...
+TOGETHER_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo
+```
+
+Restart `npm run dev` after changing env vars.
