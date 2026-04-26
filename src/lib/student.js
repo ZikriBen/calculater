@@ -6,12 +6,12 @@ const CHANGE_EVENT = "studentchange";
 const defaults = {
   name: "",
   gender: "male",     // "female" | "male"
-  grade: "ד'",          // "א'" | "ב'" | "ג'" | "ד'" | "ה'" | "ו'"
+  grade: "ד'",          // "א'"–"י״ב"
   theme: "neutral",        // "girl" | "boy" | "neutral"
   dayStorageKey: "naama_day",
 };
 
-export const GRADES = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'"];
+export const GRADES = ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י״א", "י״ב"];
 
 const load = () => {
   try { return { ...defaults, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") }; }
@@ -37,51 +37,116 @@ export const useStudent = () => {
   return STUDENT;
 };
 
+// ------ Stage (tone) ------
+// Grades map to one of three stages that control the voice of the assistant:
+//   kid     — playful, emoji-friendly, simple language (grades א'–ו')
+//   teen    — direct, warm but not childish, fewer emojis (grades ז'–י״ב)
+//   academy — concise, formal, no emojis (anything else: university labels)
+
+const KID_GRADES = new Set(["א'", "ב'", "ג'", "ד'", "ה'", "ו'"]);
+const TEEN_GRADES = new Set(["ז'", "ח'", "ט'", "י'", "י״א", "י״ב"]);
+
+export const stageFor = (grade = STUDENT.grade) => {
+  if (KID_GRADES.has(grade)) return "kid";
+  if (TEEN_GRADES.has(grade)) return "teen";
+  return "academy";
+};
+
+// Noun used to refer to the learner in prompts — respects gender AND stage.
+export const studentNoun = (g = STUDENT.gender, stage = stageFor()) => {
+  if (stage === "kid")     return g === "male" ? "ילד"    : "ילדה";
+  if (stage === "teen")    return g === "male" ? "תלמיד"  : "תלמידה";
+  return g === "male" ? "סטודנט" : "סטודנטית";
+};
+
+// Noun used for the teacher/assistant persona — stage-dependent.
+export const teacherTitle = (stage = stageFor()) => {
+  if (stage === "kid")  return "המורה הפרטית";
+  if (stage === "teen") return "המורה";
+  return "המתרגלת";
+};
+
+// Level label shown in UI ("בכיתה X" for school, "בשנה X" for uni if relevant).
+const gradeContext = (grade = STUDENT.grade, stage = stageFor(grade)) =>
+  stage === "academy" ? `(${grade})` : `בכיתה ${grade}`;
+
+// Tone instructions appended to LLM system prompts.
+export const toneGuide = (stage = stageFor()) => {
+  if (stage === "kid") {
+    return `שפה פשוטה ומשחקית בגובה העיניים של ילד/ה בכיתה ${STUDENT.grade}. מותר להשתמש באימוג'ים. משפטים קצרים ומעודדים.`;
+  }
+  if (stage === "teen") {
+    return `שפה ישירה, בהירה וחמה, ברמה של תלמיד/ת חטיבת ביניים/תיכון בכיתה ${STUDENT.grade}. מעט אימוג'ים, הסברים מדויקים, בלי להצטמצם לאינפנטיליות.`;
+  }
+  return `שפה אקדמית, ענייניות ותמציתית. ללא אימוג'ים. הסברים מדויקים ופורמליים, עם הגדרות, סימונים וצעדי הוכחה במידת הצורך.`;
+};
+
 // ------ Prompt helpers (read live from STUDENT) ------
 
 export const genderGuide = (g = STUDENT.gender) => g === "male"
   ? `כל פנייה אל ${STUDENT.name} חייבת להיות בלשון זכר יחיד (אתה, חשוב, נסה, בדוק, שים לב). אסור להשתמש בלשון נקבה.`
   : `כל פנייה אל ${STUDENT.name} חייבת להיות בלשון נקבה יחיד (את, חשבי, נסי, בדקי, שימי לב). אסור להשתמש בלשון זכר.`;
 
-export const teacherRole = (g = STUDENT.gender) => {
-  const studentNoun = g === "male" ? "ילד" : "ילדה";
-  return `את מורה פרטית לחשבון ל${studentNoun} בכיתה ${STUDENT.grade} בשם ${STUDENT.name}.
+const DEFAULT_SUBJECT = { roleDative: "לחשבון", inLocative: "במתמטיקה", short: "חשבון" };
+
+export const teacherRole = (subject = DEFAULT_SUBJECT, g = STUDENT.gender) => {
+  const stage = stageFor();
+  const noun = studentNoun(g, stage);
+  const title = stage === "kid"
+    ? `מורה פרטית ${subject.roleDative}`
+    : stage === "teen"
+    ? `מורה ${subject.roleDative}`
+    : `מתרגלת ${subject.inLocative}`;
+  return `את ${title} ל${noun} ${gradeContext()} בשם ${STUDENT.name}.
 ${genderGuide(g)}
-דברי על עצמך בלשון נקבה (אני המורה שלך, הכנתי לך).`;
+${toneGuide(stage)}
+דברי על עצמך בלשון נקבה (אני ${teacherTitle(stage)} שלך, הכנתי לך).`;
 };
 
 export const exampleHint = (g = STUDENT.gender) => g === "male"
   ? `"חבר קודם את העשרות ואז את היחידות, זה יותר קל"`
   : `"חברי קודם את העשרות ואז את היחידות, זה יותר קל"`;
 
-// ------ UI strings (gender-aware) ------
+// ------ UI strings (gender + stage aware) ------
 
-export const uiStrings = (g = STUDENT.gender) => g === "male" ? {
-  greeting: `שלום ${STUDENT.name}! 👋`,
-  teacherIntro: "אני המורה הפרטית שלך לחשבון",
-  teacherBlurb: "אני אכין לך תרגילים מותאמים אישית, ואם תרצה – אפשר להעלות תמונה של מבחן וננתח אותו יחד!",
-  startDay: "התחלת יום תרגול! 🚀",
-  uploadExam: "העלאת תמונה של מבחן 📝",
-  askTeacher: "שאל/י את המורה שאלה 💬",
-  thinking: "המורה חושבת...",
-  preparing: "המורה מכינה תרגילים...",
-  checking: "המורה בודקת את התרגילים עכשיו...",
-  savedLabel: "שמור",
-  cancelLabel: "ביטול",
-  startPractice: "התחל תרגול",
-} : {
-  greeting: `שלום ${STUDENT.name}! 👋`,
-  teacherIntro: "אני המורה הפרטית שלך לחשבון",
-  teacherBlurb: "אני אכין לך תרגילים מותאמים אישית, ואם תרצי – אפשר להעלות תמונה של מבחן ואנתח אותו יחד!",
-  startDay: "בואו נתחיל יום תרגול! 🚀",
-  uploadExam: "העלאת תמונה של מבחן 📝",
-  askTeacher: "שאל/י את המורה שאלה 💬",
-  thinking: "המורה חושבת...",
-  preparing: "המורה מכינה תרגילים...",
-  checking: "המורה בודקת את התרגילים עכשיו...",
-  savedLabel: "שמור",
-  cancelLabel: "ביטול",
-  startPractice: "התחלת תרגול",
+export const uiStrings = (subject = DEFAULT_SUBJECT, g = STUDENT.gender, stage = stageFor()) => {
+  const female = g !== "male";
+  const title = teacherTitle(stage);              // המורה / המתרגלת
+  const teacherIntroBase =
+    stage === "kid"  ? `אני המורה הפרטית שלך ${subject.roleDative}` :
+    stage === "teen" ? `אני המורה שלך ${subject.roleDative}` :
+                       `אני המתרגלת שלך ${subject.inLocative}`;
+
+  const blurb =
+    stage === "kid"
+      ? (female
+          ? "אני אכין לך תרגילים מותאמים אישית, ואם תרצי – אפשר להעלות תמונה של מבחן ואנתח אותו יחד!"
+          : "אני אכין לך תרגילים מותאמים אישית, ואם תרצה – אפשר להעלות תמונה של מבחן וננתח אותו יחד!")
+      : stage === "teen"
+      ? (female
+          ? "תרגולים מותאמים לרמה שלך, עם משוב ברור. אפשר גם להעלות מבחן ולנתח אותו יחד."
+          : "תרגולים מותאמים לרמה שלך, עם משוב ברור. אפשר גם להעלות מבחן ולנתח אותו יחד.")
+      : "תרגולים ממוקדים ברמה אקדמית, עם פתרון מלא ומשוב תמציתי. ניתן להעלות חומר קיים לניתוח.";
+
+  const startDay =
+    stage === "kid"  ? (female ? "בואו נתחיל יום תרגול! 🚀" : "התחלת יום תרגול! 🚀") :
+    stage === "teen" ? "בוא/י נתחיל תרגול" :
+                       "התחלת סשן תרגול";
+
+  return {
+    greeting: `שלום ${STUDENT.name}! 👋`,
+    teacherIntro: teacherIntroBase,
+    teacherBlurb: blurb,
+    startDay,
+    uploadExam: "העלאת תמונה של מבחן 📝",
+    askTeacher: `שאל/י את ${title} שאלה 💬`,
+    thinking: `${title} חושבת...`,
+    preparing: `${title} מכינה תרגילים...`,
+    checking: `${title} בודקת את התרגילים עכשיו...`,
+    savedLabel: "שמור",
+    cancelLabel: "ביטול",
+    startPractice: female ? "התחלת תרגול" : "התחל תרגול",
+  };
 };
 
 // ------ Theme tokens ------
