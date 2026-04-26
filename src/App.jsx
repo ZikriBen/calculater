@@ -1,15 +1,17 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useParams, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import Chat from "./pages/Chat";
 import Practice from "./pages/Practice";
-import VerticalPractice from "./pages/VerticalPractice";
-import { useEffect } from "react";
+import TeacherPicker from "./pages/TeacherPicker";
+import { Suspense, useEffect } from "react";
 import { STUDENT, themeTokens, useStudent } from "@/lib/student";
+import { drillById } from "@/lib/drillModes";
+import { useActiveTeacher } from "@/lib/teachers";
 
 const TitleSync = () => {
   useStudent();
@@ -41,11 +43,35 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Chat />} />
-      <Route path="/practice" element={<Practice />} />
-      <Route path="/practice/vertical" element={<VerticalPractice />} />
+      <Route path="/" element={<TeacherPicker />} />
+      <Route path="/chat" element={<RequireTeacher><Chat /></RequireTeacher>} />
+      <Route path="/practice" element={<RequireTeacher><Practice /></RequireTeacher>} />
+      <Route path="/practice/vertical" element={<Navigate to="/practice/vertical-multiplication" replace />} />
+      <Route path="/practice/:drillId" element={<RequireTeacher><DrillRoute /></RequireTeacher>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+  );
+};
+
+const RequireTeacher = ({ children }) => {
+  const teacher = useActiveTeacher();
+  if (!teacher) return <Navigate to="/" replace />;
+  return children;
+};
+
+const DrillRoute = () => {
+  const { drillId } = useParams();
+  const drill = drillById(drillId);
+  if (!drill) return <PageNotFound />;
+  const Component = drill.component;
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin"></div>
+      </div>
+    }>
+      <Component />
+    </Suspense>
   );
 };
 

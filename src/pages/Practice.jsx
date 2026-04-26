@@ -5,11 +5,11 @@ import { ArrowRight, Star, CheckCircle2, XCircle, Lightbulb, ChevronDown } from 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { STUDENT, genderGuide, teacherRole, exampleHint, themeTokens, useStudent } from "@/lib/student";
-import { topicsForGrade, CURRICULUM } from "@/lib/curriculum";
+import { STUDENT, genderGuide, teacherRole, exampleHint, studentNoun, themeTokens, useStudent } from "@/lib/student";
+import { useActiveTeacher, topicsFor } from "@/lib/teachers";
 
-const pickVariety = (diff) => {
-  const pool = topicsForGrade(STUDENT.grade, diff);
+const pickVariety = (teacher, diff) => {
+  const pool = teacher ? topicsFor(teacher, STUDENT.grade, diff) : [];
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, 5);
 };
@@ -28,18 +28,34 @@ const TOPIC_GLOSSARY = `מילון נושאים (עברית בית-ספר):
 - "השלמה ל-10 / ל-100" = מציאת המספר המשלים לעגול קרוב.
 - "בעיה מילולית" = שאלה בסיפור, דורשת הבנה ותרגום לחשבון.`;
 
-const EXERCISE_PROMPT = (difficulty, examContext, variety, seed) => {
-  const diffLabel = difficulty === 'easy' ? 'קל' : difficulty === 'medium' ? 'בינוני' : 'מאתגר';
+const EXERCISE_PROMPT = (teacher, difficulty, examContext, variety, seed) => {
+  const diffLabel = teacher?.levels?.[["easy","medium","hard"].indexOf(difficulty)]
+    || (difficulty === 'easy' ? 'קל' : difficulty === 'medium' ? 'בינוני' : 'מאתגר');
+  const subjectShort = teacher?.subjectLabels?.short || "מתמטיקה";
+  const answerType = teacher?.answerType || "number";
   const hintRule = `לכל תרגיל הוסיפי "hint" — רמז קצר בעברית בגוף שני, משפט אחד עד 12 מילים, שמכוון את ${STUDENT.name} איך לגשת בלי לתת את התשובה. ${genderGuide()} דוגמה: ${exampleHint()}.`;
-  const answerRule = `⚠️ כלל קריטי לשדה "answer":
+
+  const answerRuleMath = `⚠️ כלל קריטי לשדה "answer":
 - חובה שיהיה **רק המספר הסופי** (למשל "69", "286", "7.5").
 - אסור לחלוטין ביטויים, סימני שוויון, הסברים, או פיצולים. לא "(20+3)×3=69" ולא "20×3 + 3×3 = 69".
-- הסיבה: הילדה מזינה תשובה בודדת בתיבת קלט אחת. ההשוואה מול "answer" חייבת להצליח רק על המספר הסופי.
+- הסיבה: ${studentNoun()} מזין/ה תשובה בודדת בתיבת קלט אחת. ההשוואה מול "answer" חייבת להצליח רק על המספר הסופי.
 ⚠️ כלל קריטי לשדה "question":
 - אסור להכניס שדות למילוי בצורת "__" או "___" (אין UI לשדות משניים). יש רק תיבת תשובה אחת לתוצאה הסופית.
 - אם מדובר בפילוג — כתבי את הנחיית הפיצול בתוך "hint", לא בתוך "question". ה-question יציג רק את השאלה הסופית, למשל "23 × 3 = ?".
 - solution (אופציונלי) = מחרוזת הסבר הדרך המלאה ("23 × 3 = 20×3 + 3×3 = 60 + 9 = 69"). המשוב יציג אותה בסיום.`;
-  const schemaLine = `החזר JSON בלבד: {"exercises": [{"question": "...", "answer": "מספר בלבד", "hint": "...", "solution": "(אופציונלי) הסבר הדרך"}, ...]}`;
+
+  const answerRuleText = `⚠️ כללי מבנה קריטיים (יש רק תיבת קלט טקסט אחת לכל תרגיל):
+- "answer" = **מילה אחת באנגלית** או ביטוי קצר מאוד (עד 3 מילים). בלי ניקוד, בלי מרכאות, בלי סימני פיסוק מסביב.
+- הקפידי שה־answer תהיה חד־משמעית: אין שתי תשובות נכונות מקבילות. אם יש ספק — נסחי את השאלה כך שיש רק תשובה אפשרית אחת.
+- "question" = שאלה קצרה וברורה. כותבים את השאלה בעברית, אבל אם הנושא דורש תוכן באנגלית (מילה/משפט לתרגום, השלמה) — כללי את החלק האנגלי ישירות בתוך ה־question.
+- לשאלות השלמה: ציינו את הקונטקסט במילים, בלי קווים תחתונים ארוכים. לדוגמה: "מה צריך להיות במקום המילה החסרה במשפט: 'I ___ a student' — הכניסי פועל עזר מתאים." (answer: "am").
+- ❌ אסור: "כמה אותיות יש במילה X" (זה לא תרגול שפה); אסור שאלות טריוויה על עברית (ניקוד, תעתיק); אסור שאלות שהתשובה בהן היא "כן/לא" בלבד.
+- ✅ מותר: תרגום מילה בודדת ("How do you say 'ילד' in English?" → "boy"), השלמה דקדוקית ("He ___ to school every day" → "goes"), זיהוי אות/צליל ("Which letter makes the 'mmm' sound?" → "M"), בחירת הצורה הנכונה ("big / bigger / biggest — the ___ elephant in the zoo" → "biggest").
+- solution (אופציונלי) = הסבר קצר בעברית של **הכלל** או **התרגום** (למה זו התשובה).`;
+
+  const answerRule = answerType === "text" ? answerRuleText : answerRuleMath;
+  const answerDesc = answerType === "text" ? "מילה אחת או ביטוי קצר" : "מספר בלבד";
+  const schemaLine = `החזר JSON בלבד: {"exercises": [{"question": "...", "answer": "${answerDesc}", "hint": "...", "solution": "(אופציונלי)"}, ...]}`;
 
   // Mode A: focused practice (exam context OR explicit chat request) — stay ON-topic.
   if (examContext) {
@@ -61,14 +77,15 @@ const EXERCISE_PROMPT = (difficulty, examContext, variety, seed) => {
 - שנו מספרים, הקשרים, וסיפורים בין התרגילים (אל תחזרו על אותם מספרים).
 - גיוון מותר רק במסגרת הנושא — למשל בבעיות מילוליות: פעם חיבור, פעם חיסור, פעם בעיה דו-שלבית.
 - זרע אקראיות: ${seed}.`;
-    return `${teacherRole()}
+    return `${teacherRole(teacher?.subjectLabels)}
 ${contextIntro}
-נושא למיקוד: ${focusTopics?.join(', ') || 'חשבון כללי'}.${examplesText}
+נושא למיקוד: ${focusTopics?.join(', ') || subjectShort}.${examplesText}
 צרי בדיוק 5 תרגילים ברמה "${diffLabel}".
 
-${TOPIC_GLOSSARY}
+${teacher?.systemPromptExtra || TOPIC_GLOSSARY}
 
 ${topicRules}
+${answerRule}
 ${hintRule}
 ${schemaLine}
 תרגילים קצרים וברורים.`;
@@ -83,16 +100,17 @@ ${schemaLine}
 - גוון מבנה השאלה (לפעמים "7 × 8 =", לפעמים "כמה זה 12 + 15?", לפעמים בעיה מילולית קצרה בת משפט אחד).
 - השתמשי במספרים מגוונים — אל תתחילי תמיד ב-10, 20, 100.
 - זרע אקראיות: ${seed}.`;
-  return `${teacherRole()}
-צרי בדיוק 5 תרגילי חשבון ברמה "${diffLabel}" מתאימים לכיתה ${STUDENT.grade}.
+  return `${teacherRole(teacher?.subjectLabels)}
+צרי בדיוק 5 תרגילי ${subjectShort} ברמה "${diffLabel}" מתאימים לרמה של ${STUDENT.name}.
 ${varietyLine}
 ${diversityRules}
+${answerRule}
 ${hintRule}
 ${schemaLine}
-תרגילים קצרים וברורים. רק מספרים בתשובות.`;
+תרגילים קצרים וברורים.`;
 };
 
-const FEEDBACK_PROMPT = (answeredExercises) => `${teacherRole()} בדקי את תשובות ${STUDENT.name} ותני משוב ישיר, בגוף שני, בעברית.
+const FEEDBACK_PROMPT = (teacher, answeredExercises) => `${teacherRole(teacher?.subjectLabels)} בדקי את תשובות ${STUDENT.name} ותני משוב ישיר, בגוף שני, בעברית.
 
 ${answeredExercises}
 
@@ -103,6 +121,7 @@ ${answeredExercises}
 ${genderGuide()}`;
 
 export default function Practice() {
+  const teacher = useActiveTeacher();
   const navigate = useNavigate();
   const [phase, setPhase] = useState("loading"); // loading | exercises | feedback | done | error
   const [errorMsg, setErrorMsg] = useState("");
@@ -128,7 +147,7 @@ export default function Practice() {
     const wantsVertical = allTopics.some(t => /כפל\s*מאונך/.test(t));
     if (wantsVertical) {
       // Leave context intact for the dedicated page to read and clear.
-      navigate("/practice/vertical", { replace: true });
+      navigate("/practice/vertical-multiplication", { replace: true });
       return;
     }
 
@@ -152,10 +171,10 @@ export default function Practice() {
     setResults([]);
     setOpenHints({});
     try {
-      const variety = pickVariety(diff);
+      const variety = pickVariety(teacher, diff);
       const seed = Math.random().toString(36).slice(2, 10) + "-" + Date.now();
       const result = await api.integrations.Core.InvokeLLM({
-        prompt: EXERCISE_PROMPT(diff, ctx, variety, seed),
+        prompt: EXERCISE_PROMPT(teacher, diff, ctx, variety, seed),
         response_json_schema: {
           type: "object",
           properties: {
@@ -196,17 +215,36 @@ export default function Practice() {
     return matches ? matches[matches.length - 1] : str.trim();
   };
 
+  const normalizeText = (s) => String(s ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[.,!?;:'"״׳`]/g, "")
+    .replace(/\s+/g, " ");
+
+  const answerType = teacher?.answerType || "number";
+
   const handleSubmit = async () => {
     setPhase("checking");
     const answeredList = exercises.map((ex, i) => {
-      const userNum = extractFinalNumber(answers[i]);
-      const correctNum = extractFinalNumber(ex.answer);
+      const raw = answers[i] || "";
+      let correct, correctAnswer;
+      if (answerType === "text") {
+        const userNorm = normalizeText(raw);
+        const correctNorm = normalizeText(ex.answer);
+        correctAnswer = String(ex.answer ?? "").trim();
+        correct = userNorm !== "" && userNorm === correctNorm;
+      } else {
+        const userNum = extractFinalNumber(raw);
+        const correctNum = extractFinalNumber(ex.answer);
+        correctAnswer = correctNum;
+        correct = userNum !== "" && Number(userNum) === Number(correctNum);
+      }
       return {
         question: ex.question,
-        userAnswer: answers[i] || "?",
-        correctAnswer: correctNum,
+        userAnswer: raw || "?",
+        correctAnswer,
         solution: ex.solution || "",
-        correct: userNum !== "" && Number(userNum) === Number(correctNum),
+        correct,
       };
     });
 
@@ -218,7 +256,7 @@ export default function Practice() {
 
     try {
       const response = await api.integrations.Core.InvokeLLM({
-        prompt: FEEDBACK_PROMPT(answeredText)
+        prompt: FEEDBACK_PROMPT(teacher, answeredText)
       });
       setFeedback(response);
       setPhase("feedback");
@@ -252,7 +290,7 @@ export default function Practice() {
       <header className="bg-white/70 backdrop-blur-md border-b border-purple-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/chat")}
             className="flex items-center gap-1.5 text-purple-500 hover:text-purple-700 text-sm font-medium transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
@@ -287,7 +325,7 @@ export default function Practice() {
             <div className="text-5xl">😕</div>
             <p className="text-purple-800 font-semibold text-lg whitespace-pre-line max-w-lg">{errorMsg}</p>
             <p className="text-xs text-purple-400">(פתח את Console בדפדפן לפרטים מלאים)</p>
-            <Button onClick={() => navigate("/")} variant="outline" className="rounded-2xl border-purple-200 text-purple-700">
+            <Button onClick={() => navigate("/chat")} variant="outline" className="rounded-2xl border-purple-200 text-purple-700">
               חזרה לשיחה
             </Button>
           </div>
@@ -337,17 +375,24 @@ export default function Practice() {
                 <div key={i} className={`${cfg.bg} border-2 ${cfg.border} rounded-2xl p-4`}>
                   <div className="flex items-center gap-3">
                     <span className="text-purple-400 font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
-                    <span className="flex-1 font-medium text-gray-800 text-base" dir="ltr" style={{ textAlign: 'left' }}>
+                    <span
+                      className="flex-1 font-medium text-gray-800 text-base"
+                      dir={answerType === "text" ? "rtl" : "ltr"}
+                      style={{ textAlign: answerType === "text" ? 'right' : 'left' }}
+                    >
                       {ex.question}
                     </span>
-                    <span className="text-gray-400 text-sm flex-shrink-0">=</span>
+                    {answerType !== "text" && <span className="text-gray-400 text-sm flex-shrink-0">=</span>}
                     <input
                       type="text"
-                      inputMode="numeric"
+                      inputMode={answerType === "text" ? "text" : "numeric"}
+                      autoCapitalize={answerType === "text" ? "none" : undefined}
+                      autoCorrect="off"
+                      spellCheck={false}
                       value={answers[i] || ""}
                       onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
-                      placeholder="?"
-                      className="w-20 text-center border-2 border-purple-300 rounded-xl px-2 py-2 text-base font-bold focus:outline-none focus:border-purple-500 bg-white flex-shrink-0"
+                      placeholder={answerType === "text" ? "…" : "?"}
+                      className={`${answerType === "text" ? "w-32" : "w-20"} text-center border-2 border-purple-300 rounded-xl px-2 py-2 text-base font-bold focus:outline-none focus:border-purple-500 bg-white flex-shrink-0`}
                       dir="ltr"
                     />
                   </div>
@@ -406,14 +451,14 @@ export default function Practice() {
                       ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
                       : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                     }
-                    <span className="flex-1 text-sm text-gray-700" dir="ltr" style={{ textAlign: 'left' }}>{r.question}</span>
+                    <span className="flex-1 text-sm text-gray-700" dir={answerType === "text" ? "rtl" : "ltr"} style={{ textAlign: answerType === "text" ? 'right' : 'left' }}>{r.question}</span>
                     <div className="flex items-center gap-2 flex-shrink-0 text-sm">
                       <span className={r.correct ? "text-green-600 font-bold" : "text-red-400 line-through"}>{r.userAnswer}</span>
                       {!r.correct && <span className="text-green-600 font-bold">{r.correctAnswer}</span>}
                     </div>
                   </div>
                   {!r.correct && r.solution && (
-                    <div className="mt-2 pr-8 text-xs text-gray-600 bg-white/70 rounded-lg px-3 py-1.5" dir="ltr" style={{ textAlign: 'left' }}>
+                    <div className="mt-2 pr-8 text-xs text-gray-600 bg-white/70 rounded-lg px-3 py-1.5" dir={answerType === "text" ? "rtl" : "ltr"} style={{ textAlign: answerType === "text" ? 'right' : 'left' }}>
                       💡 {r.solution}
                     </div>
                   )}
@@ -469,7 +514,7 @@ export default function Practice() {
                 🔁 עוד תרגול
               </Button>
               <Button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/chat")}
                 variant="outline"
                 className="rounded-2xl h-12 border-purple-200 text-purple-700 font-semibold"
               >

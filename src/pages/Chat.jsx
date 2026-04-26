@@ -1,20 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/api/client";
-import { STUDENT, teacherRole, genderGuide, themeTokens, uiStrings, useStudent } from "@/lib/student";
+import { STUDENT, teacherRole, genderGuide, stageFor, studentNoun, themeTokens, uiStrings, useStudent } from "@/lib/student";
+import { useActiveTeacher } from "@/lib/teachers";
 import Header from "@/components/tutor/Header";
 import WelcomeScreen from "@/components/tutor/WelcomeScreen";
 import ChatMessage from "@/components/tutor/ChatMessage";
 import InputBar from "@/components/tutor/InputBar";
 
-const buildChatSystemPrompt = () => {
+const buildChatSystemPrompt = (teacher) => {
   const female = STUDENT.gender !== "male";
   const suffixE = female ? "ה" : "";
   const objPronoun = female ? "ה" : "ו";
   const askingVerb = female ? "מבקשת" : "מבקש";
   const ctaLabel = female ? "התחילי תרגול" : "התחל תרגול";
+  const subjectShort = teacher?.subjectLabels?.short || "החומר";
   return `תפקיד:
-${teacherRole()}
+${teacherRole(teacher?.subjectLabels)}
 
 🧠 מצב עבודה 1: ניתוח מבחן (כאשר מצורפת תמונה)
 כאשר המשתמש מצרף תמונה של מבחן:
@@ -23,15 +25,12 @@ ${teacherRole()}
 3. אמרי ל${objPronoun} שהכנת תרגול מותאם אישית
 
 🧠 מצב עבודה 2: שיחה חופשית
-עני על שאלות בחשבון, הסבירי מושגים, עזרי להבין טעויות.
-שפה פשוטה לכיתה ${STUDENT.grade}. כתבי בעברית בלבד.
+עני על שאלות ב${subjectShort}, הסבירי מושגים, עזרי להבין טעויות.
+כתבי בעברית בלבד.
 ${genderGuide()}
 
-📖 מילון מושגים מבית הספר (שימי לב, יש מושגים ששימוש ישראלי ייחודי):
-- "פילוג" = שיטת כפל על ידי פיצול מספר לפי ערכי מקום. דוגמה: 143×2 = 100×2 + 40×2 + 3×2 = 286. כשהילדה מבקשת תרגול ב"פילוג", צרי תרגילים שמראים את הפיצול במפורש.
-- "חוק החילוף" / "חוק הקיבוץ" / "חוק הפילוג" = תכונות החיבור/כפל.
-- "השלמה ל-10 / 100" = מציאת המשלים.
-אם ילדה משתמשת במושג שלא ברור — שאלי אותה להסביר, ולאחר שתסביר, עדכני את התרגול בהתאם לנושא שהבהירה.
+${teacher?.systemPromptExtra || ""}
+אם ${studentNoun()} משתמש/ת במושג שלא ברור — שאלי לפירוט, ולאחר התשובה עדכני את התרגול בהתאם.
 
 🎯 כש${askingVerb}ים תרגול בנושא ספציפי:
 אם ${STUDENT.name} ${askingVerb}${suffixE} לתרגל נושא ספציפי (למשל "אני רוצה בעיות מילוליות", "תני לי תרגילי כפל"), אל תכתבי את התרגילים בצ'אט. במקום זאת, אמרי משפט קצר של אישור בסגנון:
@@ -90,6 +89,7 @@ const EXAM_ANALYSIS_SCHEMA = {
 };
 
 export default function Chat() {
+  const teacher = useActiveTeacher();
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
@@ -143,13 +143,13 @@ export default function Chat() {
         // Run analysis + chat response in parallel
         const [analysisResult, response] = await Promise.all([
           api.integrations.Core.InvokeLLM({
-            prompt: `נתח את מבחן החשבון בתמונה. זהה את הנושאים, רמת הקושי, ובאיזה נושאים הילדה טעתה.`,
+            prompt: `נתח את מבחן המתמטיקה בתמונה. זהה את הנושאים, רמת הקושי, ובאילו נושאים ${studentNoun()} טעה/תה.`,
             file_urls: [uploadedUrl],
             model: "claude_sonnet_4_6",
             response_json_schema: EXAM_ANALYSIS_SCHEMA
           }),
           api.integrations.Core.InvokeLLM({
-            prompt: `${buildChatSystemPrompt()}\n\nהודעה נוכחית: ${userPrompt}`,
+            prompt: `${buildChatSystemPrompt(teacher)}\n\nהודעה נוכחית: ${userPrompt}`,
             file_urls: [uploadedUrl],
             model: "claude_sonnet_4_6"
           })
@@ -162,7 +162,7 @@ export default function Chat() {
         const historyText = conversationHistory.map(m => `${m.role === 'user' ? STUDENT.name : 'מורה'}: ${m.content}`).join('\n');
         const [response, intent] = await Promise.all([
           api.integrations.Core.InvokeLLM({
-            prompt: `${buildChatSystemPrompt()}
+            prompt: `${buildChatSystemPrompt(teacher)}
 
 היסטוריית שיחה:
 ${historyText}
@@ -209,7 +209,7 @@ ${historyText}
 
   useStudent();
   const theme = themeTokens();
-  const s = uiStrings();
+  const s = uiStrings(teacher?.subjectLabels);
 
   return (
     <div className={`min-h-screen ${theme.pageBg} flex flex-col`} dir="rtl">

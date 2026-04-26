@@ -66,7 +66,7 @@ export default function VerticalPractice() {
       <header className="bg-white/70 backdrop-blur-md border-b border-purple-100 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/chat")}
             className="flex items-center gap-1.5 text-purple-500 hover:text-purple-700 text-sm font-medium transition-colors"
           >
             <ArrowRight className="w-4 h-4" />
@@ -107,7 +107,7 @@ export default function VerticalPractice() {
           correct={correctCount}
           total={DRILLS_PER_SESSION}
           onAgain={() => navigate(0)}
-          onHome={() => navigate("/")}
+          onHome={() => navigate("/chat")}
           theme={theme}
         />
       )}

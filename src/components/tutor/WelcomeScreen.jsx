@@ -3,13 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ImagePlus, Play, MessageCircle } from "lucide-react";
 import { STUDENT, themeTokens, uiStrings, useStudent } from "@/lib/student";
-import { quickTopicsFor } from "@/lib/curriculum";
+import { quickTopicsFor, useActiveTeacher } from "@/lib/teachers";
+import { drillsForGrade } from "@/lib/drillModes";
 
 export default function WelcomeScreen({ onStart, onUploadExam, onChat }) {
   const navigate = useNavigate();
   useStudent();
+  const teacher = useActiveTeacher();
   const t = themeTokens();
-  const s = uiStrings();
+  const s = uiStrings(teacher?.subjectLabels);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -17,7 +19,9 @@ export default function WelcomeScreen({ onStart, onUploadExam, onChat }) {
     if (file) onUploadExam(file);
   };
 
-  const quickTopics = quickTopicsFor(STUDENT.grade);
+  const quickTopics = teacher ? quickTopicsFor(teacher, STUDENT.grade) : [];
+  const drillTiles = drillsForGrade(STUDENT.grade, teacher?.subject)
+    .filter(d => teacher?.features?.includes(d.id));
 
   const startTopic = (item) => {
     localStorage.setItem("practice_context", JSON.stringify({
@@ -104,6 +108,27 @@ export default function WelcomeScreen({ onStart, onUploadExam, onChat }) {
           ))}
         </div>
       </div>
+
+      {drillTiles.length > 0 && (
+        <div className="mt-6 w-full max-w-sm">
+          <p className={`${t.softText} text-xs font-semibold mb-2 text-center`}>תרגולים אינטראקטיביים:</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {drillTiles.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => navigate(`/practice/${d.id}`)}
+                className={`bg-white rounded-2xl p-3 shadow-sm border ${t.borderSoft} flex flex-col items-center gap-1 hover:shadow-md hover:scale-[1.03] active:scale-95 transition-all`}
+              >
+                <span className="text-2xl">{d.emoji}</span>
+                <span className={`text-[11px] ${t.softText} font-semibold text-center leading-tight`}>
+                  {d.label}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
