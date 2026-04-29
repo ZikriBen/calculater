@@ -25,7 +25,7 @@ export const TEACHERS = [
     levels: ["קל", "בינוני", "קשה"],
     features: [
       "chat", "practice",
-      "number-line", "vertical-add-sub", "vertical-multiplication",
+      "number-line", "vertical-add", "vertical-sub", "vertical-multiplication",
       "long-division", "integer-ops",
       "times-table-sprint", "clock-reading",
     ],

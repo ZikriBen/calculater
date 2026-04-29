@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ArrowRight, RotateCcw, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { STUDENT, themeTokens, useStudent } from "@/lib/student";
@@ -20,9 +20,9 @@ const rangeByGrade = (grade) => {
   }
 };
 
-const generateProblem = (grade) => {
+const generateProblem = (grade, forcedOp) => {
   const [lo, hi] = rangeByGrade(grade);
-  const op = Math.random() < 0.5 ? "+" : "-";
+  const op = forcedOp || (Math.random() < 0.5 ? "+" : "-");
   for (let tries = 0; tries < 6; tries++) {
     let a = randInt(lo, hi);
     let b = randInt(lo, hi);
@@ -72,8 +72,16 @@ const padLeft = (digits, width) => {
 
 export default function VerticalAddSub() {
   const navigate = useNavigate();
+  const { drillId } = useParams();
   useStudent();
   const theme = themeTokens();
+
+  const forcedOp = drillId === "vertical-add" ? "+"
+                 : drillId === "vertical-sub" ? "-"
+                 : null;
+  const headingTitle = forcedOp === "+" ? "חיבור מאונך ➕"
+                     : forcedOp === "-" ? "חיסור מאונך ➖"
+                     : "חיבור וחיסור מאונך ➕➖";
 
   useEffect(() => {
     localStorage.removeItem("practice_context");
@@ -81,8 +89,8 @@ export default function VerticalAddSub() {
   }, []);
 
   const problems = useMemo(
-    () => Array.from({ length: DRILLS_PER_SESSION }, () => generateProblem(STUDENT.grade)),
-    []
+    () => Array.from({ length: DRILLS_PER_SESSION }, () => generateProblem(STUDENT.grade, forcedOp)),
+    [forcedOp]
   );
 
   const [index, setIndex] = useState(0);
@@ -100,7 +108,7 @@ export default function VerticalAddSub() {
             <ArrowRight className="w-4 h-4" />
             חזרה
           </button>
-          <h1 className={`font-bold ${theme.accentText}`}>חיבור וחיסור מאונך ➕➖</h1>
+          <h1 className={`font-bold ${theme.accentText}`}>{headingTitle}</h1>
           <div className="flex items-center gap-1.5 bg-yellow-50 border border-yellow-200 rounded-full px-3 py-1">
             <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400" />
             <span className="text-xs font-semibold text-yellow-700">{index + 1}/{DRILLS_PER_SESSION}</span>
@@ -158,6 +166,7 @@ function AddSubDrill({ problem, onComplete }) {
 
   const [entries, setEntries] = useState({});
   const [scratch, setScratch] = useState({});
+  const [borrows, setBorrows] = useState({}); // borrows[col] = true means col borrowed 1 from col-1
   const [checked, setChecked] = useState(false);
   const inputRefs = useRef([]);
 
@@ -170,6 +179,12 @@ function AddSubDrill({ problem, onComplete }) {
   const setScratchCell = (col, value) => {
     const sanitized = value.replace(/\D/g, "").slice(-1);
     setScratch(prev => ({ ...prev, [col]: sanitized }));
+  };
+
+  const toggleBorrow = (col) => {
+    if (col <= 0) return;
+    if (topRow[col - 1] === null) return;
+    setBorrows(prev => ({ ...prev, [col]: !prev[col] }));
   };
 
   const perCell = expectedResultRow.map((exp, col) => {
@@ -191,7 +206,9 @@ function AddSubDrill({ problem, onComplete }) {
       <p className="text-purple-700 text-sm text-center">
         פתרי את התרגיל המאונך.<br />
         מלאי מימין לשמאל: יחידות → עשרות → מאות.<br />
-        במשבצות המקווקוות בראש אפשר לרשום {scratchLabel}.
+        {op === "+"
+          ? "במשבצות המקווקוות בראש אפשר לרשום נשא."
+          : "צריכה לשאול? לחצי על הספרה שלמעלה כדי לסמן שאילה."}
       </p>
 
       <div
@@ -199,24 +216,32 @@ function AddSubDrill({ problem, onComplete }) {
         dir="ltr"
       >
         <div className="flex flex-col items-end gap-2">
-          <div className="flex gap-2">
-            {topRow.map((_, i) => (
-              <input
-                key={`scratch-${i}`}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={scratch[i] || ""}
-                onChange={(e) => setScratchCell(i, e.target.value)}
-                aria-label={`scratch column ${i}`}
-                className="w-10 h-6 sm:w-12 sm:h-7 text-center text-sm font-semibold rounded-md border border-dashed border-gray-300 bg-gray-50/60 text-gray-500 focus:outline-none focus:border-purple-400 focus:bg-white"
-              />
-            ))}
-          </div>
+          {op === "+" && (
+            <div className="flex gap-2">
+              {topRow.map((_, i) => (
+                <input
+                  key={`scratch-${i}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={scratch[i] || ""}
+                  onChange={(e) => setScratchCell(i, e.target.value)}
+                  aria-label={`scratch column ${i}`}
+                  className="w-10 h-6 sm:w-12 sm:h-7 text-center text-sm font-semibold rounded-md border border-dashed border-gray-300 bg-gray-50/60 text-gray-500 focus:outline-none focus:border-purple-400 focus:bg-white"
+                />
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-2">
             {topRow.map((d, i) => (
-              <DigitCell key={`top-${i}`} value={d} readonly />
+              <TopDigitCell
+                key={`top-${i}`}
+                value={d}
+                decremented={op === "-" && !!borrows[i + 1]}
+                borrowed={op === "-" && !!borrows[i]}
+                onTap={op === "-" ? () => toggleBorrow(i) : undefined}
+              />
             ))}
           </div>
 
@@ -347,6 +372,35 @@ function DigitCell({ value, readonly }) {
     >
       {value}
     </div>
+  );
+}
+
+function TopDigitCell({ value, decremented, borrowed, onTap }) {
+  if (value === null) return <div className="w-10 h-12 sm:w-12 sm:h-14" />;
+  const tappable = !!onTap;
+  const newValue = decremented ? value - 1 : null;
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      disabled={!tappable}
+      className={`relative w-10 h-12 sm:w-12 sm:h-14 flex items-center justify-center rounded-lg text-2xl sm:text-3xl font-bold bg-purple-50 text-purple-800 border border-purple-100 ${
+        tappable ? "cursor-pointer hover:bg-purple-100 active:bg-purple-200" : ""
+      }`}
+      aria-label={tappable ? "סמני שאילה" : undefined}
+    >
+      {decremented && (
+        <span className="absolute -top-3 right-1 text-sm font-bold text-orange-600">
+          {newValue}
+        </span>
+      )}
+      {borrowed && (
+        <span className="absolute -top-3 left-0 text-sm font-bold text-orange-600">
+          1
+        </span>
+      )}
+      <span className={decremented ? "line-through text-purple-400" : ""}>{value}</span>
+    </button>
   );
 }
 

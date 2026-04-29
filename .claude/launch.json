@@ -5,7 +5,7 @@
       "name": "calculater-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
-      "port": 5173,
+      "port": 5176,
       "cwd": "/Users/benzi/Personal/calculater"
     }
   ]
