@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CURRICULUM as MATH_CURRICULUM, QUICK_TOPICS as MATH_QUICK_TOPICS } from "@/lib/curriculum";
+import { ENGLISH_CURRICULUM, ENGLISH_QUICK_TOPICS } from "@/lib/englishCurriculum";
 
 // ------ Teacher registry ------
 // Subject-agnostic so future teachers (geography, statistics, ...) only need
@@ -26,7 +27,7 @@ export const TEACHERS = [
     features: [
       "chat", "practice",
       "number-line", "vertical-add", "vertical-sub", "vertical-multiplication",
-      "long-division", "integer-ops",
+      "division-remainder", "long-division", "pizza-fractions", "integer-ops",
       "times-table-sprint", "clock-reading",
     ],
     // Hebrew labels used in prompts and UI strings.
@@ -40,6 +41,34 @@ export const TEACHERS = [
 - "פילוג" = שיטת כפל על ידי פיצול מספר לפי ערכי מקום. דוגמה: 143×2 = 100×2 + 40×2 + 3×2 = 286.
 - "חוק החילוף" / "חוק הקיבוץ" / "חוק הפילוג" = תכונות החיבור/כפל.
 - "השלמה ל-10 / 100" = מציאת המשלים.`,
+    builtIn: true,
+  },
+  {
+    id: "english",
+    name: "אנגלית",
+    emoji: "🔤",
+    color: "sky",
+    subject: "english",
+    locale: "he",
+    topicsByGrade: ENGLISH_CURRICULUM,
+    quickTopicsByGrade: ENGLISH_QUICK_TOPICS,
+    levels: ["קל", "בינוני", "קשה"],
+    features: [
+      "chat", "practice",
+      "alphabet-practice",
+      "word-match", "spelling-sprint", "sentence-fill",
+      "grammar-fix", "reading-comp",
+      "sentence-reorder", "irregular-verbs", "confusing-words",
+    ],
+    subjectLabels: { roleDative: "לאנגלית", inLocative: "באנגלית", short: "אנגלית" },
+    answerType: "text",
+    practiceLoadMsg: "המורה מכינה תרגילים...",
+    systemPromptExtra: `You are an English teacher for Hebrew-speaking students.
+Always include Hebrew translation (תרגום) and transliteration with nikud (תעתיק) when introducing new words.
+Format: word — תרגום — (תעתיק)
+Example: "beautiful — יפה — (בְּיוּטִיפוּל)"
+Keep explanations in Hebrew. Use simple English sentences for examples.
+Focus on vocabulary, spelling, and basic sentence structure appropriate for the student's grade.`,
     builtIn: true,
   },
 ];

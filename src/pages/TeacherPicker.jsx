@@ -14,7 +14,6 @@ const COLOR_STYLES = {
 };
 
 const COMING_SOON = [
-  { id: "_english",   name: "אנגלית",    emoji: "🔤", color: "sky"     },
   { id: "_science",   name: "מדעים",     emoji: "🔬", color: "emerald" },
   { id: "_history",   name: "היסטוריה",  emoji: "🏺", color: "amber"   },
   { id: "_bible",     name: "תנ״ך",      emoji: "📜", color: "rose"    },

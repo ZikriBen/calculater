@@ -146,8 +146,17 @@ export default function Practice() {
     const allTopics = [...(ctx?.topics || []), ...(ctx?.wrong_topics || [])];
     const wantsVertical = allTopics.some(t => /כפל\s*מאונך/.test(t));
     if (wantsVertical) {
-      // Leave context intact for the dedicated page to read and clear.
       navigate("/practice/vertical-multiplication", { replace: true });
+      return;
+    }
+    const wantsDivRemainder = allTopics.some(t => /חילוק\s*(עם\s*)?שארית/.test(t) && !/חילוק\s*ארוך/.test(t));
+    if (wantsDivRemainder) {
+      navigate("/practice/division-remainder", { replace: true });
+      return;
+    }
+    const wantsFractions = allTopics.some(t => /שברים/.test(t));
+    if (wantsFractions) {
+      navigate("/practice/pizza-fractions", { replace: true });
       return;
     }
 
