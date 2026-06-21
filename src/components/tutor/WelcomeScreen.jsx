@@ -90,7 +90,7 @@ export default function WelcomeScreen({ onStart, onUploadExam, onChat }) {
         />
       </div>
 
-      <div className="mt-10 w-full max-w-sm">
+      {quickTopics.length > 0 && <div className="mt-10 w-full max-w-sm">
         <p className={`${t.softText} text-xs font-semibold mb-2 text-center`}>או בחר/י נושא לתרגול ישיר:</p>
         <div className="grid grid-cols-3 gap-2.5">
           {quickTopics.map((item) => (
@@ -107,7 +107,7 @@ export default function WelcomeScreen({ onStart, onUploadExam, onChat }) {
             </button>
           ))}
         </div>
-      </div>
+      </div>}
 
       {drillTiles.length > 0 && (
         <div className="mt-6 w-full max-w-sm">

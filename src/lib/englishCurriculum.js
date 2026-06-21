@@ -273,14 +273,7 @@ export const ENGLISH_CURRICULUM = Object.fromEntries(
 );
 
 export const ENGLISH_QUICK_TOPICS = Object.fromEntries(
-  Object.keys(VOCAB).map(grade => [
-    grade,
-    [
-      { emoji: "🃏", label: "התאמת מילים", topic: "word-match", difficulty: "easy" },
-      { emoji: "✍️", label: "איות מהיר", topic: "spelling-sprint", difficulty: "medium" },
-      { emoji: "📝", label: "השלמת משפטים", topic: "sentence-fill", difficulty: "hard" },
-    ],
-  ])
+  Object.keys(VOCAB).map(grade => [grade, []])
 );
 
 export const vocabFor = (grade, difficulty) => {

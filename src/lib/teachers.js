@@ -55,7 +55,7 @@ export const TEACHERS = [
     levels: ["קל", "בינוני", "קשה"],
     features: [
       "chat", "practice",
-      "alphabet-practice",
+      "alphabet-practice", "letter-flashcards", "letter-fill-in",
       "word-match", "spelling-sprint", "sentence-fill",
       "grammar-fix", "reading-comp",
       "sentence-reorder", "irregular-verbs", "confusing-words",
