@@ -11,6 +11,7 @@ const COLOR_STYLES = {
   rose:    { card: "from-rose-400 via-pink-400 to-fuchsia-400",   ring: "ring-rose-200 hover:ring-rose-400",      label: "text-rose-700"    },
   indigo:  { card: "from-indigo-400 via-blue-400 to-cyan-400",    ring: "ring-indigo-200 hover:ring-indigo-400",  label: "text-indigo-700"  },
   slate:   { card: "from-slate-400 via-gray-400 to-zinc-400",     ring: "ring-slate-200 hover:ring-slate-400",    label: "text-slate-700"   },
+  violet:  { card: "from-violet-400 via-purple-400 to-indigo-400",ring: "ring-violet-200 hover:ring-violet-400",  label: "text-violet-700"  },
 };
 
 const COMING_SOON = [

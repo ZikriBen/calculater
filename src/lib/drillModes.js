@@ -194,6 +194,15 @@ export const DRILL_MODES = [
     topics: ["מילים מבלבלות", "אוצר מילים", "דקדוק"],
     component: lazy(() => import("@/pages/drills/ConfusingWords")),
   },
+  {
+    id: "mimad-session",
+    subject: "mimad",
+    label: "סימולציה + תרגול",
+    emoji: "🏁",
+    grades: ["א'", "ב'", "ג'", "ד'", "ה'", "ו'", "ז'", "ח'", "ט'", "י'", "י״א", "י״ב"],
+    topics: ["סימולציית מבחן", "תרגול עם הסברים", "כמותי", "עברית", "אנגלית"],
+    component: lazy(() => import("@/pages/drills/MimadSession")),
+  },
 ];
 
 export const drillsForGrade = (grade, subject = "math") =>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CURRICULUM as MATH_CURRICULUM, QUICK_TOPICS as MATH_QUICK_TOPICS } from "@/lib/curriculum";
 import { ENGLISH_CURRICULUM, ENGLISH_QUICK_TOPICS } from "@/lib/englishCurriculum";
+import { MIMAD_CURRICULUM, MIMAD_QUICK_TOPICS_BY_GRADE } from "@/lib/mimadCurriculum";
 
 // ------ Teacher registry ------
 // Subject-agnostic so future teachers (geography, statistics, ...) only need
@@ -69,6 +70,32 @@ Format: word — תרגום — (תעתיק)
 Example: "beautiful — יפה — (בְּיוּטִיפוּל)"
 Keep explanations in Hebrew. Use simple English sentences for examples.
 Focus on vocabulary, spelling, and basic sentence structure appropriate for the student's grade.`,
+    builtIn: true,
+  },
+  {
+    id: "mimad",
+    name: "מימ״ד",
+    emoji: "🎯",
+    color: "violet",
+    subject: "mimad",
+    locale: "he",
+    topicsByGrade: MIMAD_CURRICULUM,
+    quickTopicsByGrade: MIMAD_QUICK_TOPICS_BY_GRADE,
+    levels: ["קל", "בינוני", "מאתגר"],
+    features: ["chat", "practice", "mimad-session"],
+    subjectLabels: { roleDative: "להכנה למימ״ד", inLocative: "בהכנה למימ״ד", short: "מימ״ד" },
+    answerType: "mcq",
+    practiceLoadMsg: "המורה מכינה שאלות מימ״ד...",
+    systemPromptExtra: `את מכינה תלמידים למבחן מימ״ד — מבחן המיון הקצר של המרכז הארצי לבחינות והערכה (NITE), המשמש חלופה לפסיכומטרי לקבלה למכללות אקדמיות. המבחן האמיתי נערך במחשב, אורכו כשעתיים וחצי, וכולל 3 חלקים נפרדים בשיטת רב-ברירה אמריקאית (4 אפשרויות, תשובה נכונה אחת):
+
+1. אנגלית — Sentence completion (מהקל לקשה) ו-Reading comprehension (השאלות מסודרות לפי סדר הופעת התשובות בטקסט).
+2. כמותי — ידע בסיסי מהתיכון: אחוזים, יחס וקצב, משוואות, סדרות מספרים, גיאומטריה (זוויות, שטח, היקף), והסקת מסקנות מטבלאות ותרשימים. מותר דף נוסחאות, **אסור מחשבון** — נסחי שאלות שפתירות בחישוב ידני. השאלות מסודרות מהקל לקשה.
+3. עברית — אוצר מילים (משמעות מילים), השלמת משפט הגיונית (לעיתים עם כמה מקומות חסרים במשפט אחד, כשכל אפשרות היא צירוף מילים שלם למילוי כולם), והבנת הנקרא (השאלות מסודרות לפי סדר הופעתן בטקסט).
+
+דוגמאות לסגנון וברמת הקושי (לשימוש כהשראה, לא לשכפול מילולי):
+- כמותי: "עובד מוכר 54 רכבים במהלך שנה וחצי בקצב קבוע — בכמה חודשים ימכור 9 רכבים?" / "מלבן ששטחו 16 סמ״ר, אורך צלעו הארוכה גדול פי 4 מהקצרה — מה אורך הצלע הקצרה?"
+- עברית: "משמעות המילה 'נפיל' היא: ענק" / משפט עם 4 מקומות חסרים ("השר ____ הצעת החוק, ____ לאחר ש...") כשכל אפשרות ממלאת את כל המקומות בבת אחת.
+- אנגלית: "The best ________ for mushrooms to grow needs to be warm, but also shaded." (environment)`,
     builtIn: true,
   },
 ];

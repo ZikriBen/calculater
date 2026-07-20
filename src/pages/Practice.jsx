@@ -35,6 +35,12 @@ const EXERCISE_PROMPT = (teacher, difficulty, examContext, variety, seed) => {
   const answerType = teacher?.answerType || "number";
   const hintRule = `לכל תרגיל הוסיפי "hint" — רמז קצר בעברית בגוף שני, משפט אחד עד 12 מילים, שמכוון את ${STUDENT.name} איך לגשת בלי לתת את התשובה. ${genderGuide()} דוגמה: ${exampleHint()}.`;
 
+  const hintRuleMcq = `⚠️ כלל "hint" (קריטי לאיכות — רמזים גנריים כמו "תחשוב טוב" נחשבים כשלון):
+- ציינו את החוק/הנוסחה/הטכניקה הרלוונטית **בשמה**, ואיך להפעיל אותה על הנתונים הספציפיים של השאלה הזו — בלי לבצע את החישוב הסופי ובלי לחשוף את התשובה.
+- מותר 1–2 משפטים (עד כ-30 מילים), לא הגבלת מילה אחת.
+- דוגמאות לרמת האיכות הנדרשת (השראה בלבד): "כדי למצוא מחיר לפני הנחה של X%, יש לחלק ב-(1 − X/100) ולא לחסר את האחוז ישירות." | "בדקו את ההפרשים בין איברים סמוכים בסדרה, ואז את ההפרש בין ההפרשים." | "זוויות הבסיס במשולש שווה-שוקיים שוות זו לזו — חלקו את הסכום הידוע ב-2."
+- אסור רמזים ריקים כמו "שימי לב לפרטים" בלי לציין איזו נוסחה/חוק בדיוק.`;
+
   const answerRuleMath = `⚠️ כלל קריטי לשדה "answer":
 - חובה שיהיה **רק המספר הסופי** (למשל "69", "286", "7.5").
 - אסור לחלוטין ביטויים, סימני שוויון, הסברים, או פיצולים. לא "(20+3)×3=69" ולא "20×3 + 3×3 = 69".
@@ -53,9 +59,25 @@ const EXERCISE_PROMPT = (teacher, difficulty, examContext, variety, seed) => {
 - ✅ מותר: תרגום מילה בודדת ("How do you say 'ילד' in English?" → "boy"), השלמה דקדוקית ("He ___ to school every day" → "goes"), זיהוי אות/צליל ("Which letter makes the 'mmm' sound?" → "M"), בחירת הצורה הנכונה ("big / bigger / biggest — the ___ elephant in the zoo" → "biggest").
 - solution (אופציונלי) = הסבר קצר בעברית של **הכלל** או **התרגום** (למה זו התשובה).`;
 
-  const answerRule = answerType === "text" ? answerRuleText : answerRuleMath;
+  const answerRuleMcq = `🌐 כלל שפה מחייב (הכי חשוב — הפרה נחשבת כשלון):
+- שאלות מהחלק "כמותי" (מתמטיקה): ה-question, ה-options, ה-answer, ה-hint וה-solution — הכל **בעברית בלבד** (מותרים מספרים וסימנים מתמטיים). אסור לנסח שאלת מתמטיקה באנגלית.
+- שאלות מהחלק "עברית": הכל **בעברית בלבד**.
+- שאלות מהחלק "אנגלית"/"English": ה-question, ה-options וה-answer **באנגלית בלבד** (זהו החלק שבוחן אנגלית); ה-hint וה-solution — **בעברית**.
+- לסיכום: רק שאלות מהחלק האנגלי מנוסחות באנגלית. שאלות כמותי ועברית — עברית מלאה.
+
+⚠️ כללי מבנה קריטיים לשאלות רב-ברירה (בדיוק כמו במבחן מימ״ד האמיתי):
+- שדה "options" = מערך של **בדיוק 4** מחרוזות (אפשרויות תשובה), בלי מספור בתוכן (המספור 1-4 מתווסף אוטומטית בממשק).
+- שדה "answer" = **חייב להיות זהה מילה במילה** לאחת מתוך 4 המחרוזות ב-"options" (העתק מדויק, לא ניסוח מחדש).
+- מסיחים (אפשרויות שגויות) צריכים להיות סבירים ולא הזויים, בדיוק כמו במבחן האמיתי (למשל בגיאומטריה: טעות נפוצה בחישוב; באחוזים: בלבול בין אחוז מהחלק לאחוז מהשלם; בסדרות: זיהוי חוקיות שגויה).
+- "question" = השאלה המלאה. לשאלות עם כמה מקומות חסרים באותו משפט — כללי את כל המשפט עם קווי תחתון בתוך ה-question, וכל אפשרות ב-options תהיה הצירוף השלם למילוי כל המקומות (בדיוק כמו במבחן האמיתי).
+- שדה "solution" **חובה** (לא אופציונלי) = הסבר קצר וברור כיצד פותרים את השאלה צעד-אחר-צעד (הנוסחה/החוקיות/ההיגיון שמוביל לתשובה), לא רק "כי ככה". יוצג לאחר הבדיקה.
+- בחלק הכמותי: אסור מחשבון — נסחי שאלות שפתירות בחישוב ידני / היגיון בלבד.`;
+
+  const answerRule = answerType === "mcq" ? answerRuleMcq : answerType === "text" ? answerRuleText : answerRuleMath;
   const answerDesc = answerType === "text" ? "מילה אחת או ביטוי קצר" : "מספר בלבד";
-  const schemaLine = `החזר JSON בלבד: {"exercises": [{"question": "...", "answer": "${answerDesc}", "hint": "...", "solution": "(אופציונלי)"}, ...]}`;
+  const schemaLine = answerType === "mcq"
+    ? `החזר JSON בלבד: {"exercises": [{"question": "...", "options": ["...", "...", "...", "..."], "answer": "העתק מדויק של אחת מה-options", "hint": "...", "solution": "הסבר הפתרון (חובה)"}, ...]}`
+    : `החזר JSON בלבד: {"exercises": [{"question": "...", "answer": "${answerDesc}", "hint": "...", "solution": "(אופציונלי)"}, ...]}`;
 
   // Mode A: focused practice (exam context OR explicit chat request) — stay ON-topic.
   if (examContext) {
@@ -86,7 +108,7 @@ ${teacher?.systemPromptExtra || TOPIC_GLOSSARY}
 
 ${topicRules}
 ${answerRule}
-${hintRule}
+${answerType === "mcq" ? hintRuleMcq : hintRule}
 ${schemaLine}
 תרגילים קצרים וברורים.`;
   }
@@ -105,7 +127,7 @@ ${schemaLine}
 ${varietyLine}
 ${diversityRules}
 ${answerRule}
-${hintRule}
+${answerType === "mcq" ? hintRuleMcq : hintRule}
 ${schemaLine}
 תרגילים קצרים וברורים.`;
 };
@@ -193,6 +215,7 @@ export default function Practice() {
                 type: "object",
                 properties: {
                   question: { type: "string" },
+                  options: { type: "array", items: { type: "string" }, description: "For MCQ teachers only: exactly 4 answer choices." },
                   answer: { type: "string", description: "FINAL numeric answer only, no expressions." },
                   hint: { type: "string" },
                   solution: { type: "string", description: "Optional step-by-step derivation, shown only in feedback." }
@@ -230,6 +253,8 @@ export default function Practice() {
     .replace(/[.,!?;:'"״׳`]/g, "")
     .replace(/\s+/g, " ");
 
+  const dirFor = (s) => /[֐-׿]/.test(s || "") ? "rtl" : "ltr";
+
   const answerType = teacher?.answerType || "number";
 
   const handleSubmit = async () => {
@@ -237,7 +262,7 @@ export default function Practice() {
     const answeredList = exercises.map((ex, i) => {
       const raw = answers[i] || "";
       let correct, correctAnswer;
-      if (answerType === "text") {
+      if (answerType !== "number") {
         const userNorm = normalizeText(raw);
         const correctNorm = normalizeText(ex.answer);
         correctAnswer = String(ex.answer ?? "").trim();
@@ -382,29 +407,62 @@ export default function Practice() {
             <div className="space-y-3">
               {exercises.map((ex, i) => (
                 <div key={i} className={`${cfg.bg} border-2 ${cfg.border} rounded-2xl p-4`}>
-                  <div className="flex items-center gap-3">
-                    <span className="text-purple-400 font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
-                    <span
-                      className="flex-1 font-medium text-gray-800 text-base"
-                      dir={answerType === "text" ? "rtl" : "ltr"}
-                      style={{ textAlign: answerType === "text" ? 'right' : 'left' }}
-                    >
-                      {ex.question}
-                    </span>
-                    {answerType !== "text" && <span className="text-gray-400 text-sm flex-shrink-0">=</span>}
-                    <input
-                      type="text"
-                      inputMode={answerType === "text" ? "text" : "numeric"}
-                      autoCapitalize={answerType === "text" ? "none" : undefined}
-                      autoCorrect="off"
-                      spellCheck={false}
-                      value={answers[i] || ""}
-                      onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
-                      placeholder={answerType === "text" ? "…" : "?"}
-                      className={`${answerType === "text" ? "w-32" : "w-20"} text-center border-2 border-purple-300 rounded-xl px-2 py-2 text-base font-bold focus:outline-none focus:border-purple-500 bg-white flex-shrink-0`}
-                      dir="ltr"
-                    />
-                  </div>
+                  {answerType === "mcq" ? (
+                    <div>
+                      <div className="flex items-start gap-3 mb-3">
+                        <span className="text-purple-400 font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
+                        <span
+                          className="flex-1 font-medium text-gray-800 text-base"
+                          dir={dirFor(ex.question)}
+                          style={{ textAlign: dirFor(ex.question) === 'rtl' ? 'right' : 'left' }}
+                        >
+                          {ex.question}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-2 pr-9">
+                        {(ex.options || []).map((opt, oi) => (
+                          <button
+                            key={oi}
+                            type="button"
+                            onClick={() => setAnswers({ ...answers, [i]: opt })}
+                            dir={dirFor(opt)}
+                            style={{ textAlign: dirFor(opt) === 'rtl' ? 'right' : 'left' }}
+                            className={`rounded-xl px-3 py-2 text-sm font-semibold border-2 transition-colors ${
+                              answers[i] === opt
+                                ? "bg-purple-100 border-purple-400 text-purple-800"
+                                : "bg-white border-gray-200 hover:border-purple-300 text-gray-700"
+                            }`}
+                          >
+                            {oi + 1}. {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <span className="text-purple-400 font-bold text-sm flex-shrink-0 w-6">{i + 1}.</span>
+                      <span
+                        className="flex-1 font-medium text-gray-800 text-base"
+                        dir={answerType === "text" ? "rtl" : "ltr"}
+                        style={{ textAlign: answerType === "text" ? 'right' : 'left' }}
+                      >
+                        {ex.question}
+                      </span>
+                      {answerType !== "text" && <span className="text-gray-400 text-sm flex-shrink-0">=</span>}
+                      <input
+                        type="text"
+                        inputMode={answerType === "text" ? "text" : "numeric"}
+                        autoCapitalize={answerType === "text" ? "none" : undefined}
+                        autoCorrect="off"
+                        spellCheck={false}
+                        value={answers[i] || ""}
+                        onChange={(e) => setAnswers({ ...answers, [i]: e.target.value })}
+                        placeholder={answerType === "text" ? "…" : "?"}
+                        className={`${answerType === "text" ? "w-32" : "w-20"} text-center border-2 border-purple-300 rounded-xl px-2 py-2 text-base font-bold focus:outline-none focus:border-purple-500 bg-white flex-shrink-0`}
+                        dir="ltr"
+                      />
+                    </div>
+                  )}
                   {ex.hint && (
                     <div className="mt-2 pr-9">
                       <button
@@ -417,7 +475,11 @@ export default function Practice() {
                         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${openHints[i] ? 'rotate-180' : ''}`} />
                       </button>
                       {openHints[i] && (
-                        <div className="mt-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                        <div
+                          className="mt-2 text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2"
+                          dir={dirFor(ex.hint)}
+                          style={{ textAlign: dirFor(ex.hint) === 'rtl' ? 'right' : 'left' }}
+                        >
                           💡 {ex.hint}
                         </div>
                       )}
@@ -455,19 +517,39 @@ export default function Practice() {
                 <div key={i} className={`rounded-2xl px-4 py-3 border ${
                   r.correct ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
                 }`}>
-                  <div className="flex items-center gap-3">
-                    {r.correct
-                      ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
-                      : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                    }
-                    <span className="flex-1 text-sm text-gray-700" dir={answerType === "text" ? "rtl" : "ltr"} style={{ textAlign: answerType === "text" ? 'right' : 'left' }}>{r.question}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0 text-sm">
-                      <span className={r.correct ? "text-green-600 font-bold" : "text-red-400 line-through"}>{r.userAnswer}</span>
-                      {!r.correct && <span className="text-green-600 font-bold">{r.correctAnswer}</span>}
+                  {answerType === "mcq" ? (
+                    <div className="flex items-start gap-3">
+                      {r.correct
+                        ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                        : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      }
+                      <div className="flex-1 text-sm text-gray-700 space-y-1">
+                        <div dir={dirFor(r.question)} style={{ textAlign: dirFor(r.question) === 'rtl' ? 'right' : 'left' }}>{r.question}</div>
+                        <div dir={dirFor(r.userAnswer)} style={{ textAlign: dirFor(r.userAnswer) === 'rtl' ? 'right' : 'left' }} className={r.correct ? "text-green-600 font-bold" : "text-red-400 line-through"}>
+                          התשובה שלך: {r.userAnswer}
+                        </div>
+                        {!r.correct && (
+                          <div dir={dirFor(r.correctAnswer)} style={{ textAlign: dirFor(r.correctAnswer) === 'rtl' ? 'right' : 'left' }} className="text-green-600 font-bold">
+                            התשובה הנכונה: {r.correctAnswer}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      {r.correct
+                        ? <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0" />
+                        : <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                      }
+                      <span className="flex-1 text-sm text-gray-700" dir={answerType === "text" ? "rtl" : "ltr"} style={{ textAlign: answerType === "text" ? 'right' : 'left' }}>{r.question}</span>
+                      <div className="flex items-center gap-2 flex-shrink-0 text-sm">
+                        <span className={r.correct ? "text-green-600 font-bold" : "text-red-400 line-through"}>{r.userAnswer}</span>
+                        {!r.correct && <span className="text-green-600 font-bold">{r.correctAnswer}</span>}
+                      </div>
+                    </div>
+                  )}
                   {!r.correct && r.solution && (
-                    <div className="mt-2 pr-8 text-xs text-gray-600 bg-white/70 rounded-lg px-3 py-1.5" dir={answerType === "text" ? "rtl" : "ltr"} style={{ textAlign: answerType === "text" ? 'right' : 'left' }}>
+                    <div className="mt-2 pr-8 text-xs text-gray-600 bg-white/70 rounded-lg px-3 py-1.5" dir={dirFor(r.solution)} style={{ textAlign: dirFor(r.solution) === 'rtl' ? 'right' : 'left' }}>
                       💡 {r.solution}
                     </div>
                   )}
