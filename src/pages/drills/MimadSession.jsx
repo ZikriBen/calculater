@@ -10,7 +10,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, RotateCcw, Star, Lightbulb, ChevronDown, CheckCircle2, XCircle, Clock, MessageCircle, Send } from "lucide-react";
+import { ArrowRight, RotateCcw, Star, Lightbulb, ChevronDown, CheckCircle2, XCircle, Clock, MessageCircle, SendHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { themeTokens, teacherRole, useStudent } from "@/lib/student";
 import { useActiveTeacher } from "@/lib/teachers";
@@ -541,7 +541,7 @@ function QuestionChat({ question, allowRevealAnswer, teacher }) {
               disabled={loading || !input.trim()}
               className="w-10 h-10 flex items-center justify-center rounded-xl bg-violet-500 text-white disabled:opacity-40 flex-shrink-0"
             >
-              <Send className="w-4 h-4 -scale-x-100" />
+              <SendHorizontal className="w-4 h-4 -scale-x-100" />
             </button>
           </div>
         </div>
